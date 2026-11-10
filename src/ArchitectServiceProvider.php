@@ -5,6 +5,7 @@ namespace LaravelArchitect\Architect;
 use Illuminate\Support\ServiceProvider;
 use LaravelArchitect\Architect\Commands\MakeServiceCommand;
 use LaravelArchitect\Architect\Commands\MakeRepositoryCommand;
+use LaravelArchitect\Architect\Commands\ScanCommand;
 
 class ArchitectServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,7 @@ class ArchitectServiceProvider extends ServiceProvider
             $this->commands([
                 MakeServiceCommand::class,
                 MakeRepositoryCommand::class,
+                ScanCommand::class,
             ]);
 
             $this->publishes([
