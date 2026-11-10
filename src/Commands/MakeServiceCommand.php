@@ -1,6 +1,6 @@
 <?php
 
-namespace YourName\Architect\Commands;
+namespace LaravelArchitect\Architect\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 

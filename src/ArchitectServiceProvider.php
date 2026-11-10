@@ -1,9 +1,10 @@
 <?php
 
-namespace YourName\Architect;
+namespace LaravelArchitect\Architect;
 
 use Illuminate\Support\ServiceProvider;
-use YourName\Architect\Commands\MakeServiceCommand;
+use LaravelArchitect\Architect\Commands\MakeServiceCommand;
+use LaravelArchitect\Architect\Commands\MakeRepositoryCommand;
 
 class ArchitectServiceProvider extends ServiceProvider
 {
@@ -17,6 +18,7 @@ class ArchitectServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 MakeServiceCommand::class,
+                MakeRepositoryCommand::class,
             ]);
 
             $this->publishes([

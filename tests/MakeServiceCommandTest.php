@@ -1,6 +1,6 @@
 <?php
 
-use YourName\Architect\Tests\TestCase;
+use LaravelArchitect\Architect\Tests\TestCase;
 
 uses(TestCase::class);
 

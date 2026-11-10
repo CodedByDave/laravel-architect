@@ -1,9 +1,9 @@
 <?php
 
-namespace YourName\Architect\Tests;
+namespace LaravelArchitect\Architect\Tests;
 
 use Orchestra\Testbench\TestCase as Orchestra;
-use YourName\Architect\ArchitectServiceProvider;
+use LaravelArchitect\Architect\ArchitectServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
