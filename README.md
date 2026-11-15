@@ -69,6 +69,51 @@ app/Repositories/Customer/CustomerRepository.php
 
 `make:service` and `make:repository` also accept `--force`.
 
+### Scaffold a full module
+
+```bash
+php artisan make:module Customer
+```
+
+Creates everything for one feature in a single step:
+
+```
+app/Models/Customer.php
+database/migrations/xxxx_create_customers_table.php
+app/Http/Requests/Customer/StoreCustomerRequest.php
+app/Http/Requests/Customer/UpdateCustomerRequest.php
+app/Services/Customer/CustomerService.php
+app/Repositories/Customer/CustomerRepository.php
+app/Http/Controllers/Web/Customer/CustomerController.php    (resource controller)
+routes/web.php   (+ use ...\CustomerController; and explicit get/post/put/patch/delete routes)
+tests/Feature/Customer/CustomerTest.php        (Pest if installed, otherwise PHPUnit)
+resources/views/customers/{index,create,edit,show}.blade.php
+```
+
+| Option | Effect |
+|---|---|
+| `--api` | API module: `Api/Customer/CustomerController` and explicit routes in `routes/api.php`, no blade views |
+| `--except=views` | Skip parts: `model`, `migration`, `requests`, `service`, `repository`, `controller`, `routes`, `test`, `views`. Repeatable |
+| `--modular` | Put the service and repository under `app/Customer/` instead of the layer folders |
+| `--force` | Overwrite existing files |
+
+The routes are written out explicitly (no `Route::resource`), grouped under one prefix and controller:
+
+```php
+Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{customer}', 'show')->name('show');
+    Route::get('/{customer}/edit', 'edit')->name('edit');
+    Route::put('/{customer}', 'update')->name('update');
+    Route::patch('/{customer}', 'update');
+    Route::delete('/{customer}', 'destroy')->name('destroy');
+});
+```
+
+With `--api` the `create` and `edit` routes are left out. Running it again never duplicates a route. The blade views are bare starter pages with no layout, so wrap them in your own. With `--api`, if `bootstrap/app.php` doesn't register API routes yet, the command tells you to run `php artisan install:api`.
+
 ### Scan your project
 
 ```bash

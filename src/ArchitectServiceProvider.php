@@ -4,6 +4,7 @@ namespace LaravelArchitect\Architect;
 
 use Illuminate\Support\ServiceProvider;
 use LaravelArchitect\Architect\Commands\MakeDomainCommand;
+use LaravelArchitect\Architect\Commands\MakeModuleCommand;
 use LaravelArchitect\Architect\Commands\MakeServiceCommand;
 use LaravelArchitect\Architect\Commands\MakeRepositoryCommand;
 use LaravelArchitect\Architect\Commands\ScanCommand;
@@ -22,6 +23,7 @@ class ArchitectServiceProvider extends ServiceProvider
                 MakeServiceCommand::class,
                 MakeRepositoryCommand::class,
                 MakeDomainCommand::class,
+                MakeModuleCommand::class,
                 ScanCommand::class,
             ]);
 
