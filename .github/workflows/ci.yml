@@ -65,7 +65,10 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          # Older Laravel majors carry security advisories that make Composer 2.9+
+          # refuse to resolve them. This job tests compatibility, not Laravel's security.
+          composer config policy.advisories.block false
+          composer require --dev "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --prefer-dist --no-interaction --no-progress
 
       - name: Run tests
