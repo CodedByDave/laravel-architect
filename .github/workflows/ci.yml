@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # Every branch is tested as soon as it is pushed (feature/*, fix/*, docs/*, chore/*).
+    branches: ['**']
     tags: ['v*']
   pull_request:
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
