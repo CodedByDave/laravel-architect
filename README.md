@@ -1,8 +1,10 @@
 # Laravel Architect
 
+[![CI](https://github.com/CodedByDave/laravel-architect/actions/workflows/ci.yml/badge.svg)](https://github.com/CodedByDave/laravel-architect/actions/workflows/ci.yml)
+
 Organize Laravel codebases into clean, configurable architectural layers.
 
-Laravel ships with MVC, but no generators for the layers many teams add on top, such as services and repositories. Laravel Architect adds those commands, and aims to grow into a toolkit that helps you keep a codebase organized.
+Laravel ships with MVC, but no generators for the layers many teams add on top, such as services and repositories. Laravel Architect adds those commands, and a read-only scanner that tells you where classes are misplaced and why.
 
 > **Status:** early release (`v0.x`). Expect changes before `1.0`.
 
@@ -45,6 +47,70 @@ php artisan make:repository Payment/PaymentRepository
 
 Creates a repository class under `app/Repositories/Payment/`.
 
+### Create a domain (service + repository)
+
+```bash
+php artisan make:domain Customer
+```
+
+Creates both classes in their layer folders:
+
+```
+app/Services/Customer/CustomerService.php
+app/Repositories/Customer/CustomerRepository.php
+```
+
+| Option | Effect |
+|---|---|
+| `--service` | Create only the service |
+| `--repository` | Create only the repository |
+| `--modular` | Group by domain instead: `app/Customer/Services/...` and `app/Customer/Repositories/...` |
+| `--force` | Overwrite existing files |
+
+`make:service` and `make:repository` also accept `--force`.
+
+### Scan your project
+
+```bash
+php artisan architect:scan
+```
+
+Read-only: no files are changed. It reports controllers, models, routes, layers and recommendations, for example:
+
+```
+* Move ShopOptionsRepository into the Shop folder: app/Repositories/ShopOptionsRepository.php -> app/Repositories/Shop/ShopOptionsRepository.php
+    Why: ShopOptionsRepository reads and writes ShopOption model through getOptions() and updateOptions(), so it only deals with Shop concerns. Shop already holds ShopService, so keep them together.
+```
+
+| Option | Effect |
+|---|---|
+| `--layer=repositories` | Scan only one layer. Repeatable. Choose from `repositories`, `services`, `actions`, `controllers`, `models` |
+| `--deep` | Look for misplaced classes anywhere under `app/`, not only at the top of each layer folder |
+| `--json` | Print the full result as JSON |
+| `-v` | Per-controller details |
+
+```bash
+php artisan architect:scan --layer=repositories
+php artisan architect:scan --deep --layer=services --layer=repositories
+```
+
+**How domains are found.** Any business folder under `app/` (for example `app/Customer`, `app/Modules/Order` or `app/Repositories/Invoice`) counts as a domain, with no configuration. A loose class whose name contains the domain, such as `CustomerAccountRepository`, is recommended into that folder.
+
+**Why each reason is specific.** The scanner reads each class: the tables and models it uses, its public methods, any external API it calls, and what the domain folder already holds. So `PaymongoRepository` and `ShopOptionsRepository` get different explanations.
+
+To map provider names to a domain (`PaymongoRepository` belongs to `Payment`), edit `domains` in the config:
+
+```php
+'domains' => [
+    'Payment' => [
+        'label' => 'payment gateway',
+        'keywords' => ['paymongo', 'stripe', 'paypal', 'gcash'],
+    ],
+],
+```
+
+The scan only recommends moves. After moving a class, update its namespace and the places that import it.
+
 ## Customizing
 
 Publish the config file:
@@ -65,7 +131,9 @@ Published stubs are placed in `stubs/architect` and used instead of the package 
 
 - [x] `make:service`
 - [x] `make:repository`
-- [ ] `architect:scan` and `architect:report` (read-only analysis of an existing project)
+- [x] `make:domain`
+- [x] `architect:scan` (read-only analysis, scoped and deep scans, misplaced-class recommendations)
+- [ ] `architect:report`
 - [ ] `architect:routes --dry-run` (group and split route files)
 - [ ] Controller reorganization with namespace and import updates
 - [ ] `architect:check` (detect architecture violations)
@@ -78,6 +146,8 @@ Every command that moves or rewrites files will support `--dry-run` and will ref
 composer install
 vendor/bin/pest
 ```
+
+CI runs the suite on PHP 8.2, 8.3 and 8.4 with Laravel 11 and 12, on Ubuntu and Windows.
 
 ## Contributing
 
