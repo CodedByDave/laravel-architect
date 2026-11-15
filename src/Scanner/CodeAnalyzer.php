@@ -8,6 +8,8 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassConst;
@@ -160,6 +162,88 @@ class CodeAnalyzer
             'class' => ($class->namespacedName ?? $class->name)?->toString(),
             'status_constants' => $count,
         ];
+    }
+
+    /**
+     * Describe what a repository/service/action actually does, so reasons can be specific.
+     *
+     * @return array{methods: string[], models: string[], tables: string[], facades: string[], hosts: string[]}
+     */
+    public function describeClass(string $code): array
+    {
+        $result = ['methods' => [], 'models' => [], 'tables' => [], 'facades' => [], 'hosts' => []];
+
+        try {
+            $statements = $this->parse($code);
+        } catch (\PhpParser\Error) {
+            return $result;
+        }
+
+        $class = $this->firstClass($statements);
+
+        if ($class === null) {
+            return $result;
+        }
+
+        foreach ($class->getMethods() as $method) {
+            $name = $method->name->toString();
+
+            if ($method->isPublic() && ! str_starts_with($name, '__')) {
+                $result['methods'][] = $name;
+            }
+        }
+
+        foreach ($this->finder->findInstanceOf($class, Name::class) as $name) {
+            $segments = explode('\\', $name->toString());
+
+            if (count($segments) > 1 && in_array('Models', array_slice($segments, 0, -1), true)) {
+                $result['models'][] = end($segments);
+            }
+        }
+
+        foreach ($this->finder->findInstanceOf($class, StaticCall::class) as $call) {
+            if (! $call->class instanceof Name) {
+                continue;
+            }
+
+            $last = $call->class->getLast();
+
+            if (in_array($last, ['DB', 'Http', 'Cache', 'Storage', 'Mail', 'Queue', 'Redis'], true)) {
+                $result['facades'][] = $last;
+            }
+
+            if ($last === 'DB' && $call->name instanceof Identifier && $call->name->toString() === 'table'
+                && isset($call->args[0]) && $call->args[0]->value instanceof String_) {
+                $result['tables'][] = $call->args[0]->value->value;
+            }
+        }
+
+        foreach ($this->finder->findInstanceOf($class, MethodCall::class) as $call) {
+            if ($call->name instanceof Identifier && $call->name->toString() === 'table'
+                && isset($call->args[0]) && $call->args[0]->value instanceof String_) {
+                $result['tables'][] = $call->args[0]->value->value;
+            }
+        }
+
+        foreach ($this->finder->findInstanceOf($class, Property::class) as $property) {
+            foreach ($property->props as $prop) {
+                if ($prop->name->toString() === 'table' && $prop->default instanceof String_) {
+                    $result['tables'][] = $prop->default->value;
+                }
+            }
+        }
+
+        foreach ($this->finder->findInstanceOf($class, String_::class) as $string) {
+            if (preg_match('~^https?://([a-z0-9.-]+)~i', $string->value, $m)) {
+                $result['hosts'][] = strtolower($m[1]);
+            }
+        }
+
+        foreach ($result as $key => $values) {
+            $result[$key] = array_values(array_unique($values));
+        }
+
+        return $result;
     }
 
     private function parse(string $code): array

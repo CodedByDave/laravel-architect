@@ -27,6 +27,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Domains
+    |--------------------------------------------------------------------------
+    | architect:scan uses these to spot repositories/services/actions that sit
+    | loose in app/Repositories etc. but belong in a domain folder. A class whose
+    | name contains one of the keywords (PaymongoRepository -> "paymongo") is
+    | recommended to move into that domain's folder. "label" is used in the reason.
+    */
+    'domains' => [
+        'Payment' => [
+            'label' => 'payment gateway',
+            'keywords' => ['paymongo', 'stripe', 'paypal', 'gcash', 'maya', 'xendit', 'payout', 'refund'],
+        ],
+        'Shipping' => [
+            'label' => 'shipping provider',
+            'keywords' => ['courier', 'delivery', 'shipment'],
+        ],
+        'Notification' => [
+            'label' => 'notification channel',
+            'keywords' => ['sms', 'twilio', 'mailer', 'push'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Routes
     |--------------------------------------------------------------------------
     */

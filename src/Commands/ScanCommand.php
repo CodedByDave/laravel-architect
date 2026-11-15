@@ -9,13 +9,27 @@ use LaravelArchitect\Architect\Scanner\Recommender;
 class ScanCommand extends Command
 {
     protected $signature = 'architect:scan
+                            {--layer=* : Only scan these layers: repositories, services, actions, controllers, models (repeatable)}
+                            {--deep : Look for misplaced classes anywhere under app/, not only at the top of each layer folder}
                             {--json : Print the full result as JSON instead of a report}';
+
+    private const LAYERS = ['repositories', 'services', 'actions', 'controllers', 'models'];
 
     protected $description = 'Analyze the project structure and recommend improvements (read-only)';
 
     public function handle(): int
     {
-        $scan = (new ProjectScanner(base_path()))->scan($this->routeSummaries());
+        $layers = array_values(array_unique(array_map('strtolower', (array) $this->option('layer'))));
+        $unknown = array_diff($layers, self::LAYERS);
+
+        if ($unknown !== []) {
+            $this->components->error('Unknown layer(s): '.implode(', ', $unknown).'. Choose from: '.implode(', ', self::LAYERS).'.');
+
+            return self::FAILURE;
+        }
+
+        $scan = (new ProjectScanner(base_path(), null, (array) config('architect.domains', [])))
+            ->scan($this->routeSummaries(), $layers, (bool) $this->option('deep'));
         $scan['recommendations'] = (new Recommender())->fromScan($scan, (array) config('architect.layers', []));
 
         if ($this->option('json')) {
@@ -34,25 +48,38 @@ class ScanCommand extends Command
         $this->newLine();
         $this->components->info('Laravel Architect - Codebase Analysis');
 
-        $this->line('  <options=bold>Found</>');
-        $counts = $scan['counts'];
-        $this->components->twoColumnDetail('Controllers', (string) $counts['controllers']);
-        $this->components->twoColumnDetail('Models', (string) $counts['models']);
-        $this->components->twoColumnDetail('Form Requests', (string) $counts['form_requests']);
-        $this->components->twoColumnDetail(
-            'Routes',
-            sprintf('%d (api: %d, web: %d)', $counts['routes'], $counts['api_routes'], $counts['web_routes'])
-        );
+        $scoped = $scan['scope']['layers'] !== [];
 
-        $frontend = $scan['frontend'];
-        $this->components->twoColumnDetail(
-            'Frontend',
-            $frontend['stacks'] === [] ? 'none detected' : implode(', ', $frontend['stacks'])
-        );
+        if ($scoped || $scan['scope']['deep']) {
+            $this->line('  <options=bold>Scope</> '.($scoped ? implode(', ', $scan['scope']['layers']) : 'all layers').($scan['scope']['deep'] ? ' (deep)' : ''));
+            $this->newLine();
+        }
+
+        if (! $scoped) {
+            $this->line('  <options=bold>Found</>');
+            $counts = $scan['counts'];
+            $this->components->twoColumnDetail('Controllers', (string) $counts['controllers']);
+            $this->components->twoColumnDetail('Models', (string) $counts['models']);
+            $this->components->twoColumnDetail('Form Requests', (string) $counts['form_requests']);
+            $this->components->twoColumnDetail(
+                'Routes',
+                sprintf('%d (api: %d, web: %d)', $counts['routes'], $counts['api_routes'], $counts['web_routes'])
+            );
+
+            $frontend = $scan['frontend'];
+            $this->components->twoColumnDetail(
+                'Frontend',
+                $frontend['stacks'] === [] ? 'none detected' : implode(', ', $frontend['stacks'])
+            );
+        }
 
         $this->newLine();
         $this->line('  <options=bold>Layers</>');
         foreach ($scan['layers'] as $name => $layer) {
+            if ($scoped && ! in_array($name, $scan['scope']['layers'], true)) {
+                continue;
+            }
+
             $this->components->twoColumnDetail(
                 ucfirst($name).' ('.$layer['path'].')',
                 $layer['exists'] ? '<fg=green>present</> ('.$layer['files'].' files)' : '<fg=yellow>missing</>'
@@ -87,6 +114,10 @@ class ScanCommand extends Command
         $this->line('  <options=bold>Recommendations</>');
         foreach ($scan['recommendations'] as $recommendation) {
             $this->line('  <fg=yellow>*</> '.$recommendation['message']);
+
+            if (isset($recommendation['reason'])) {
+                $this->line('      <fg=gray>Why:</> '.$recommendation['reason']);
+            }
 
             foreach ($recommendation['items'] as $item) {
                 $this->line('      - '.$item);

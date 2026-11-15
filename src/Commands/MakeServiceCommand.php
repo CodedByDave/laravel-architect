@@ -26,4 +26,11 @@ class MakeServiceCommand extends GeneratorCommand
     {
         return $rootNamespace.'\\Services';
     }
+
+    protected function getOptions(): array
+    {
+        return [
+            ['force', 'f', \Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'Overwrite the class if it already exists'],
+        ];
+    }
 }

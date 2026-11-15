@@ -23,20 +23,35 @@ class ProjectScanner
 
     private CodeAnalyzer $analyzer;
 
-    public function __construct(string $basePath, ?CodeAnalyzer $analyzer = null)
+    private array $domains;
+
+    public function __construct(string $basePath, ?CodeAnalyzer $analyzer = null, array $domains = [])
     {
         $this->basePath = rtrim(str_replace('\\', '/', $basePath), '/');
         $this->analyzer = $analyzer ?? new CodeAnalyzer();
+        $this->domains = $domains;
     }
 
-    public function scan(array $routes = []): array
+    /**
+     * @param  string[]  $layers  limit the scan to these layers; empty = everything.
+     *                            Known: controllers, models, repositories, services, actions
+     * @param  bool  $deep  look for misplaced classes anywhere under app/, not only the top of each layer folder
+     */
+    public function scan(array $routes = [], array $layers = [], bool $deep = false): array
     {
-        $models = $this->scanModels();
-        $controllers = $this->scanControllers(array_column($models, 'class'));
-        $routeSummary = $this->summarizeRoutes($routes);
-        $formRequests = $this->files('app/Http/Requests');
+        $all = $layers === [];
+        $wants = fn (string $layer): bool => $all || in_array($layer, $layers, true);
+
+        $models = $wants('models') || $wants('controllers') ? $this->scanModels() : [];
+        $controllers = $wants('controllers') ? $this->scanControllers(array_column($models, 'class')) : [];
+        $routeSummary = $this->summarizeRoutes($wants('controllers') ? $routes : []);
+        $formRequests = $all ? $this->files('app/Http/Requests') : [];
+
+        $misplacedLayers = array_values(array_intersect($layers, ['repositories', 'services', 'actions']));
+        $detectMisplaced = $all || $misplacedLayers !== [];
 
         return [
+            'scope' => ['layers' => $layers, 'deep' => $deep],
             'counts' => [
                 'controllers' => count($controllers),
                 'models' => count($models),
@@ -49,7 +64,10 @@ class ProjectScanner
             'layers' => $this->scanLayers(),
             'controllers' => $controllers,
             'models' => $models,
-            'frontend' => $this->scanFrontend(),
+            'misplaced' => $detectMisplaced
+                ? (new MisplacedClassDetector($this->basePath, $this->domains))->detect($misplacedLayers, $deep)
+                : [],
+            'frontend' => $all ? $this->scanFrontend() : ['stacks' => [], 'blade_views' => 0, 'js_pages' => 0, 'js_components' => 0],
         ];
     }
 

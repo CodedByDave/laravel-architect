@@ -38,7 +38,26 @@ class Recommender
             );
         }
 
-        $withInlineValidation = $this->files($controllers, fn (array $c): bool => ! empty($c['inline_validation']));
+        foreach ($scan['misplaced'] ?? [] as $misplaced) {
+            if (! $enabled($misplaced['layer'])) {
+                continue;
+            }
+
+            $recommendations[] = $this->recommendation(
+                sprintf(
+                    'Move %s into the %s folder: %s -> %s%s',
+                    $misplaced['class'],
+                    $misplaced['domain'],
+                    $misplaced['file'],
+                    $misplaced['target'],
+                    $misplaced['folder_exists'] ? '' : ' (new folder)'
+                ),
+                [],
+                $misplaced['reason']
+            );
+        }
+
+        $withInlineValidation =$this->files($controllers, fn (array $c): bool => ! empty($c['inline_validation']));
         if ($withInlineValidation !== []) {
             $recommendations[] = $this->recommendation(
                 'Move inline validation into Form Requests (php artisan make:request).',
@@ -99,8 +118,14 @@ class Recommender
         ));
     }
 
-    private function recommendation(string $message, array $items): array
+    private function recommendation(string $message, array $items, ?string $reason = null): array
     {
-        return ['message' => $message, 'items' => $items];
+        $recommendation = ['message' => $message, 'items' => $items];
+
+        if ($reason !== null) {
+            $recommendation['reason'] = $reason;
+        }
+
+        return $recommendation;
     }
 }
