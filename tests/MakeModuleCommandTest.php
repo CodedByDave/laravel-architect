@@ -15,12 +15,21 @@ function cleanModule(): void
         app_path('Services/Widget'),
         app_path('Repositories/Widget'),
         app_path('Widget'),
-        app_path('Http/Controllers/Web/Widget'),
+        app_path('Http/Controllers/Widget'),
         app_path('Http/Controllers/Api/Widget'),
         base_path('tests/Feature/Widget'),
         resource_path('views/widgets'),
     ] as $path) {
         $files->isDirectory($path) ? $files->deleteDirectory($path) : $files->delete($path);
+    }
+
+    // Remove controller folders left empty by earlier runs, so folder detection starts clean.
+    foreach (['Web', 'Api'] as $folder) {
+        $dir = app_path("Http/Controllers/{$folder}");
+
+        if ($files->isDirectory($dir) && $files->allFiles($dir) === [] && $files->directories($dir) === []) {
+            $files->deleteDirectory($dir);
+        }
     }
 
     foreach ($files->glob(database_path('migrations/*_create_widgets_table.php')) as $migration) {
@@ -68,14 +77,14 @@ it('scaffolds model, migration, requests, service, repository, test and views', 
         expect(file_exists(resource_path("views/widgets/{$page}.blade.php")))->toBeTrue();
     }
 
-    expect(file_get_contents(app_path('Http/Controllers/Web/Widget/WidgetController.php')))
+    expect(file_get_contents(app_path('Http/Controllers/Widget/WidgetController.php')))
         ->toContain('class WidgetController')
         ->toContain('public function store');
-    expect(file_get_contents(app_path('Http/Controllers/Web/Widget/WidgetController.php')))
-        ->toContain('namespace App\Http\Controllers\Web\Widget;');
+    expect(file_get_contents(app_path('Http/Controllers/Widget/WidgetController.php')))
+        ->toContain('namespace App\Http\Controllers\Widget;');
     $routes = file_get_contents(base_path('routes/web.php'));
     expect($routes)
-        ->toContain('use App\Http\Controllers\Web\Widget\WidgetController;')
+        ->toContain('use App\Http\Controllers\Widget\WidgetController;')
         ->toContain("->controller(WidgetController::class)->group(")
         ->not->toContain('\\App\\Http');
 });
@@ -105,7 +114,7 @@ it('skips parts with --except', function () {
     $this->artisan('make:module', ['name' => 'Widget', '--except' => ['views', 'test', 'migration', 'controller', 'routes']])
         ->assertExitCode(0);
 
-    expect(file_exists(app_path('Http/Controllers/Web/Widget/WidgetController.php')))->toBeFalse();
+    expect(file_exists(app_path('Http/Controllers/Widget/WidgetController.php')))->toBeFalse();
     expect(file_exists(base_path('routes/web.php')) ? file_get_contents(base_path('routes/web.php')) : '')
         ->not->toContain('widgets');
 
@@ -129,8 +138,22 @@ it('imports the controller once and keeps existing imports intact', function () 
     $routes = file_get_contents(base_path('routes/web.php'));
 
     expect($routes)
-        ->toContain("use App\\Http\\Controllers\\HomeController;\nuse App\\Http\\Controllers\\Web\\Widget\\WidgetController;")
+        ->toContain("use App\\Http\\Controllers\\HomeController;\nuse App\\Http\\Controllers\\Widget\\WidgetController;")
         ->toContain("Route::get('/', HomeController::class);")
         ->toContain("->controller(WidgetController::class)->group(");
     expect(substr_count($routes, 'use Illuminate\\Support\\Facades\\Route;'))->toBe(1);
+});
+
+it('uses a Web/ controller folder only when the project already has one', function () {
+    mkdir(app_path('Http/Controllers/Web'), 0777, true);
+
+    try {
+        $this->artisan('make:module', ['name' => 'Widget', '--except' => ['model', 'migration', 'requests', 'service', 'repository', 'test', 'views', 'routes']])
+            ->assertExitCode(0);
+
+        expect(file_exists(app_path('Http/Controllers/Web/Widget/WidgetController.php')))->toBeTrue();
+        expect(file_exists(app_path('Http/Controllers/Widget/WidgetController.php')))->toBeFalse();
+    } finally {
+        (new Illuminate\Filesystem\Filesystem())->deleteDirectory(app_path('Http/Controllers/Web'));
+    }
 });

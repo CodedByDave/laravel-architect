@@ -84,7 +84,7 @@ app/Http/Requests/Customer/StoreCustomerRequest.php
 app/Http/Requests/Customer/UpdateCustomerRequest.php
 app/Services/Customer/CustomerService.php
 app/Repositories/Customer/CustomerRepository.php
-app/Http/Controllers/Web/Customer/CustomerController.php    (resource controller)
+app/Http/Controllers/Customer/CustomerController.php    (resource controller)
 routes/web.php   (+ use ...\CustomerController; and explicit get/post/put/patch/delete routes)
 tests/Feature/Customer/CustomerTest.php        (Pest if installed, otherwise PHPUnit)
 resources/views/customers/{index,create,edit,show}.blade.php

@@ -80,8 +80,14 @@ class MakeModuleCommand extends Command
         }
 
         $api = (bool) $this->option('api');
-        // Separate concerns: Web/ and Api/ controllers, then one folder per domain.
-        $controller = ($api ? 'Api' : 'Web')."/{$name}/{$name}Controller";
+        // One folder per domain. API controllers go under Api/; web controllers go under
+        // Web/ only if the project already has that folder, otherwise straight under Controllers/.
+        $prefix = match (true) {
+            $api => 'Api/',
+            is_dir($this->laravel->path('Http/Controllers/Web')) => 'Web/',
+            default => '',
+        };
+        $controller = "{$prefix}{$name}/{$name}Controller";
 
         if ($wants('controller')) {
             $status = max($status, $this->call('make:controller', array_filter([
