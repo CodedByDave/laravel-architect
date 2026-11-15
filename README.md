@@ -196,7 +196,7 @@ CI runs the suite on PHP 8.2, 8.3 and 8.4 with Laravel 11 and 12, on Ubuntu and 
 
 ## Contributing
 
-Issues and pull requests are welcome at <https://github.com/CodedByDave/laravel-architect>.
+Issues and pull requests are welcome at <https://github.com/CodedByDave/laravel-architect>. Work happens on feature branches that are tested by CI and merged through pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
