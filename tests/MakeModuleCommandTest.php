@@ -144,15 +144,15 @@ it('imports the controller once and keeps existing imports intact', function () 
     expect(substr_count($routes, 'use Illuminate\\Support\\Facades\\Route;'))->toBe(1);
 });
 
-it('uses a Web/ controller folder only when the project already has one', function () {
+it('never uses a Web/ controller folder, even if one is left over', function () {
     mkdir(app_path('Http/Controllers/Web'), 0777, true);
 
     try {
         $this->artisan('make:module', ['name' => 'Widget', '--except' => ['model', 'migration', 'requests', 'service', 'repository', 'test', 'views', 'routes']])
             ->assertExitCode(0);
 
-        expect(file_exists(app_path('Http/Controllers/Web/Widget/WidgetController.php')))->toBeTrue();
-        expect(file_exists(app_path('Http/Controllers/Widget/WidgetController.php')))->toBeFalse();
+        expect(file_exists(app_path('Http/Controllers/Widget/WidgetController.php')))->toBeTrue();
+        expect(file_exists(app_path('Http/Controllers/Web/Widget/WidgetController.php')))->toBeFalse();
     } finally {
         (new Illuminate\Filesystem\Filesystem())->deleteDirectory(app_path('Http/Controllers/Web'));
     }
