@@ -156,6 +156,36 @@ To map provider names to a domain (`PaymongoRepository` belongs to `Payment`), e
 
 The scan only recommends moves. After moving a class, update its namespace and the places that import it.
 
+### Architecture report
+
+```bash
+php artisan architect:report
+```
+
+Scores the project from 0 to 100 and lists what to fix. It is read-only and builds on the same scanner as `architect:scan`.
+
+It reports:
+
+- **Score and grade** for how well the code follows the layers (errors cost more than warnings, normalised by project size).
+- **Inventory per domain**: controllers, models, services, repositories, actions, form requests and matching tests.
+- **Layer violations**: a repository calling a service, a model calling a controller, a service returning a `Response`.
+- **Misplaced classes**, with the suggested move (same detector as `architect:scan`).
+- **Fat controllers**: methods over 25 lines, too many methods or lines, direct Eloquent or `DB::` calls, inline validation.
+- **Coverage gaps**: a domain with a controller but no service or repository, and services with no matching test.
+- **Naming problems**: `OrderServices`, a repository without the `Repository` suffix, a class that does not match its file name.
+- **Orphans**: services, repositories and actions that nothing injects or uses (providers, routes, config and Blade views count as uses).
+
+| Option | Effect |
+|---|---|
+| `--format=table\|json\|markdown` | Output format (default `table`) |
+| `--output=report.md` | Write the report to a file (markdown, or JSON with `--format=json`) |
+| `--domain=Customer` | Report on one domain only |
+| `--min-score=80` | Exit with code 1 when the score is lower, so CI can fail the build |
+| `--deep` | Look for misplaced classes anywhere under `app/` |
+
+Thresholds for fat controllers live under `report` in `config/architect.php`.
+
+A test counts as matching when its file name contains the service's class name or its domain name (`OrderServiceTest`, `OrderFlowTest`).
 ## Customizing
 
 Publish the config file:
@@ -178,7 +208,7 @@ Published stubs are placed in `stubs/architect` and used instead of the package 
 - [x] `make:repository`
 - [x] `make:domain`
 - [x] `architect:scan` (read-only analysis, scoped and deep scans, misplaced-class recommendations)
-- [ ] `architect:report`
+- [x] `architect:report` (score, inventory, violations, fat controllers, gaps, naming, orphans)
 - [ ] `architect:routes --dry-run` (group and split route files)
 - [ ] Controller reorganization with namespace and import updates
 - [ ] `architect:check` (detect architecture violations)

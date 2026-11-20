@@ -7,6 +7,7 @@ use LaravelArchitect\Architect\Commands\MakeDomainCommand;
 use LaravelArchitect\Architect\Commands\MakeModuleCommand;
 use LaravelArchitect\Architect\Commands\MakeServiceCommand;
 use LaravelArchitect\Architect\Commands\MakeRepositoryCommand;
+use LaravelArchitect\Architect\Commands\ReportCommand;
 use LaravelArchitect\Architect\Commands\ScanCommand;
 
 class ArchitectServiceProvider extends ServiceProvider
@@ -25,6 +26,7 @@ class ArchitectServiceProvider extends ServiceProvider
                 MakeDomainCommand::class,
                 MakeModuleCommand::class,
                 ScanCommand::class,
+                ReportCommand::class,
             ]);
 
             $this->publishes([
